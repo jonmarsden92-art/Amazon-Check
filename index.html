@@ -724,6 +724,9 @@
 </div>
 
 <script>
+// ⬇️ Replace this with your Cloudflare Worker URL after deploying
+const API_PROXY = 'https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev';
+
 let activeSources = new Set(['Amazon History','eBay UK','Google Shopping','CamelCamelCamel','PriceSpy UK']);
 let scanning = false;
 
@@ -857,7 +860,7 @@ CRITICAL RULES:
   try {
     log(`Running web search across Amazon, eBay, Google Shopping…`);
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(API_PROXY, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
