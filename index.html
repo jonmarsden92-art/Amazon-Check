@@ -650,10 +650,10 @@
   <div class="search-panel">
     <div class="panel-title">// Scan Configuration</div>
     <div class="search-row">
-      <input id="queryInput" type="text" placeholder="Product, brand, or keyword…" value="electronics" style="flex:1;min-width:180px">
+      <input id="queryInput" type="text" placeholder="Product, brand, or keyword…" style="flex:1;min-width:180px">
       <select id="categorySelect" style="min-width:160px">
-        <option value="any">Any Category</option>
-        <option value="electronics" selected>Electronics</option>
+        <option value="any" selected>Any Category</option>
+        <option value="electronics">Electronics</option>
         <option value="home">Home & Kitchen</option>
         <option value="tools">Tools & DIY</option>
         <option value="toys">Toys & Games</option>
@@ -850,7 +850,8 @@ CRITICAL RULES:
 - Use CamelCamelCamel 90-day history as the most reliable baseline
 - Score 0-100 (S=85+, A=70-84, B=55-69, C=40-54)
 - Return 4-7 deals, minimum ${minDiscount}% below market rate
-- Category: ${category === 'any' ? 'any' : category}
+- THE SEARCH QUERY IS: "${query}" — all deals MUST be closely related to this search term. Do NOT return generic electronics or unrelated products.
+- Category filter: ${category === 'any' ? 'any category is fine, but the products must match the search query' : `must be in the ${category} category`}
 - Be realistic and specific with product names and plausible UK prices`;
 
   try {
@@ -866,7 +867,7 @@ CRITICAL RULES:
         system: systemPrompt,
         messages: [{
           role: "user",
-          content: `Find Amazon UK deals for "${query}" in ${category}, minimum ${minDiscount}% off market rate. Cross-check each deal against: ${sources}. Include price history from CamelCamelCamel and eBay sold listings to confirm deals are real. Return verified JSON.`
+          content: `Search query: "${query}". Find Amazon UK deals specifically for "${query}" products${category !== 'any' ? ` in the ${category} category` : ''}. Minimum ${minDiscount}% below verified market rate. Cross-check each deal against: ${sources}. All results MUST be about "${query}" — do not return unrelated products. Return verified JSON.`
         }]
       })
     });
@@ -899,161 +900,14 @@ CRITICAL RULES:
 }
 
 function getFallback(query, category) {
+  // Show a clear message rather than misleading hardcoded electronics data
   return {
-    deals: [
-      {
-        title: "Sony WH-1000XM5 Wireless Noise Cancelling Headphones (Black)",
-        category: "Electronics",
-        currentPrice: 179.00,
-        originalPrice: 380.00,
-        discountPct: 53,
-        dealType: "clearance",
-        score: 91,
-        scoreTier: "S",
-        verificationStatus: "verified",
-        priceComparison: [
-          { retailer: "Amazon UK (now)", price: 179.00, isCurrent: true },
-          { retailer: "Amazon (90d high)", price: 380.00, note: "CamelCamelCamel" },
-          { retailer: "Amazon (90d low)", price: 299.00, note: "CamelCamelCamel" },
-          { retailer: "eBay UK (new)", price: 265.00, note: "cheapest BIN" },
-          { retailer: "eBay UK (sold)", price: 240.00, note: "avg sold 30d" },
-          { retailer: "Google Shopping", price: 289.00, note: "Currys, John Lewis" },
-          { retailer: "PriceSpy UK", price: 275.00, note: "market low" }
-        ],
-        marketLow: 265.00,
-        ebayResaleAvg: 240.00,
-        estProfit: 43.00,
-        analysis: "CamelCamelCamel confirms the 90-day low was £299 — today's £179 is a genuine all-time low. Google Shopping shows all other UK retailers at £289+. eBay sold listings average £240 for new, giving a clear arbitrage window.",
-        verdict: "buy",
-        verdictReason: "Verified cheapest across all sources — £86 below next cheapest UK retailer",
-        alertReason: "All-time Amazon UK low — £120 below 90d average",
-        searchUrl: "https://www.amazon.co.uk/s?k=sony+wh1000xm5",
-        camelUrl: "https://uk.camelcamelcamel.com/search?sq=sony+wh1000xm5"
-      },
-      {
-        title: "Dyson V12 Detect Slim Absolute Cordless Vacuum",
-        category: "Home",
-        currentPrice: 299.00,
-        originalPrice: 599.99,
-        discountPct: 50,
-        dealType: "mistake",
-        score: 96,
-        scoreTier: "S",
-        verificationStatus: "verified",
-        priceComparison: [
-          { retailer: "Amazon UK (now)", price: 299.00, isCurrent: true },
-          { retailer: "Amazon (90d high)", price: 599.99, note: "CamelCamelCamel" },
-          { retailer: "Amazon (90d low)", price: 449.00, note: "CamelCamelCamel" },
-          { retailer: "eBay UK (new)", price: 420.00, note: "cheapest BIN" },
-          { retailer: "eBay UK (sold)", price: 395.00, note: "avg sold 30d" },
-          { retailer: "Currys / John Lewis", price: 499.99, note: "Google Shopping" },
-          { retailer: "PriceSpy UK", price: 399.00, note: "market low" }
-        ],
-        marketLow: 399.00,
-        ebayResaleAvg: 395.00,
-        estProfit: 74.00,
-        analysis: "This appears to be a genuine pricing error — the V12 Detect Slim has never been below £449 in its price history according to CamelCamelCamel. Currys and John Lewis both list at £499.99. eBay sold listings show consistent £380–£410 for used units, meaning a new-in-box resale at £380+ is very achievable.",
-        verdict: "buy",
-        verdictReason: "Likely pricing error — £100 below historical Amazon low, £200 below all other retailers",
-        alertReason: "⚠ Possible pricing error: never below £449 historically",
-        searchUrl: "https://www.amazon.co.uk/s?k=dyson+v12+detect+slim",
-        camelUrl: "https://uk.camelcamelcamel.com/search?sq=dyson+v12+detect+slim"
-      },
-      {
-        title: "Apple AirPods Pro 2nd Gen with MagSafe Case (USB-C)",
-        category: "Electronics",
-        currentPrice: 169.00,
-        originalPrice: 229.00,
-        discountPct: 26,
-        dealType: "clearance",
-        score: 74,
-        scoreTier: "A",
-        verificationStatus: "partial",
-        priceComparison: [
-          { retailer: "Amazon UK (now)", price: 169.00, isCurrent: true },
-          { retailer: "Amazon (90d high)", price: 229.00, note: "CamelCamelCamel" },
-          { retailer: "Amazon (90d low)", price: 179.00, note: "CamelCamelCamel" },
-          { retailer: "eBay UK (new)", price: 175.00, note: "cheapest BIN" },
-          { retailer: "eBay UK (sold)", price: 155.00, note: "avg sold 30d" },
-          { retailer: "Google Shopping", price: 185.00, note: "Argos, Very" },
-          { retailer: "PriceSpy UK", price: 172.00, note: "market low" }
-        ],
-        marketLow: 172.00,
-        ebayResaleAvg: 155.00,
-        estProfit: -14.00,
-        analysis: "Amazon price is £3 below the PriceSpy market low, so it is genuinely competitive. However, eBay sold listings average only £155, meaning resale margin is negative after fees. Good deal to buy for personal use but not for flipping.",
-        verdict: "caution",
-        verdictReason: "Cheapest new price in UK — but eBay resale doesn't cover costs after fees",
-        alertReason: "Great personal deal, poor resale margin — eBay avg £155",
-        searchUrl: "https://www.amazon.co.uk/s?k=airpods+pro+2nd+gen+usb-c",
-        camelUrl: "https://uk.camelcamelcamel.com/search?sq=airpods+pro+2"
-      },
-      {
-        title: "Ninja Foodi MAX 15-in-1 SmartLid Multi-Cooker OP500UK",
-        category: "Home & Kitchen",
-        currentPrice: 149.99,
-        originalPrice: 349.99,
-        discountPct: 57,
-        dealType: "warehouse",
-        score: 82,
-        scoreTier: "A",
-        verificationStatus: "verified",
-        priceComparison: [
-          { retailer: "Amazon UK (now)", price: 149.99, isCurrent: true },
-          { retailer: "Amazon (90d high)", price: 349.99, note: "CamelCamelCamel" },
-          { retailer: "Amazon (90d low)", price: 219.99, note: "CamelCamelCamel" },
-          { retailer: "eBay UK (new)", price: 229.00, note: "cheapest BIN" },
-          { retailer: "eBay UK (sold)", price: 190.00, note: "avg sold 30d" },
-          { retailer: "Argos / Currys", price: 249.99, note: "Google Shopping" },
-          { retailer: "PriceSpy UK", price: 210.00, note: "market low" }
-        ],
-        marketLow: 210.00,
-        ebayResaleAvg: 190.00,
-        estProfit: 22.00,
-        analysis: "Amazon Warehouse (Grade: Good) at £149.99 — the same unit sells new for £210+ everywhere else. Even accounting for the 'used' condition, eBay buyers routinely pay £180–£200 for these. Ninja multi-cookers have very strong resale velocity on Facebook Marketplace and eBay.",
-        verdict: "buy",
-        verdictReason: "Verified £60 below cheapest new price — fast-moving product on secondary market",
-        alertReason: "Warehouse deal: £60 below market low for this model",
-        searchUrl: "https://www.amazon.co.uk/s?k=ninja+foodi+max+15+in+1",
-        camelUrl: "https://uk.camelcamelcamel.com/search?sq=ninja+foodi+op500"
-      },
-      {
-        title: 'Samsung 55" QLED 4K Smart TV QE55Q70C (2023)',
-        category: "Electronics",
-        currentPrice: 499.00,
-        originalPrice: 999.00,
-        discountPct: 50,
-        dealType: "clearance",
-        score: 62,
-        scoreTier: "B",
-        verificationStatus: "partial",
-        priceComparison: [
-          { retailer: "Amazon UK (now)", price: 499.00, isCurrent: true },
-          { retailer: "Amazon (90d high)", price: 799.00, note: "CamelCamelCamel" },
-          { retailer: "Amazon (90d low)", price: 549.00, note: "CamelCamelCamel" },
-          { retailer: "eBay UK (new)", price: 520.00, note: "cheapest BIN" },
-          { retailer: "eBay UK (sold)", price: 430.00, note: "avg sold 30d" },
-          { retailer: "Currys", price: 549.00, note: "Google Shopping" },
-          { retailer: "PriceSpy UK", price: 519.00, note: "market low" }
-        ],
-        marketLow: 519.00,
-        ebayResaleAvg: 430.00,
-        estProfit: -87.00,
-        analysis: "The £999 'original price' is inflated — CamelCamelCamel shows it has rarely exceeded £799. At £499, it is genuinely below the 90-day low (£549) and below all current retailers, making it a solid personal purchase. However, large TVs are difficult to resell at a profit due to shipping costs and eBay fees.",
-        verdict: "caution",
-        verdictReason: "Real price drop vs market — but TVs are hard to flip profitably due to logistics",
-        alertReason: "Original price inflated — real saving is vs £549 low, not £999",
-        searchUrl: "https://www.amazon.co.uk/s?k=samsung+55+qled+4k+qe55q70c",
-        camelUrl: "https://uk.camelcamelcamel.com/search?sq=samsung+qe55q70c"
-      }
-    ],
-    summary: {
-      totalScanned: 12,
-      verifiedCheapest: 4,
-      mistakePrices: 1,
-      avgMarketSaving: 51,
-      bestEstProfit: 74
-    }
+    deals: [],
+    _fallbackMsg: `Could not retrieve live deals for "${query}". The API may be unavailable — please try again shortly.`,
+    summary: { totalScanned: 0, verifiedCheapest: 0, mistakePrices: 0, avgMarketSaving: 0, bestEstProfit: 0 }
+  };
+}
+
   };
 }
 
@@ -1071,7 +925,8 @@ function renderDeals(data) {
   );
 
   if (!deals || deals.length === 0) {
-    document.getElementById('results-area').innerHTML = `<div class="state-box"><span class="state-icon">😔</span><div class="state-title">No Verified Deals</div><div class="state-sub">No deals passed cross-retailer verification. Try a different search or lower the minimum discount.</div></div>`;
+    const msg = data._fallbackMsg || 'No deals passed cross-retailer verification. Try a different search or lower the minimum discount.';
+    document.getElementById('results-area').innerHTML = `<div class="state-box"><span class="state-icon">😔</span><div class="state-title">No Verified Deals</div><div class="state-sub">${esc(msg)}</div></div>`;
     return;
   }
 
